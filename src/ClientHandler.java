@@ -23,7 +23,6 @@ class ClientHandler extends Regulador implements Runnable {
                 received = credenciais[0];
 
                 MulticastSender enviarTodos = new MulticastSender();
-
                 enviarTodos.multicast("oi");
 
                 if(received.equals("Exit")) {
