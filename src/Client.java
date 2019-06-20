@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 // Client class
@@ -11,17 +12,20 @@ public class Client extends Regulador {
 
             // getting localhost ip
             InetAddress ip = InetAddress.getByName("localhost");
+            DatagramSocket ds = new DatagramSocket(6000);
+            byte[] receive = new byte[256];
+            DatagramPacket dpReceive = null;
 
-            // establish the connection with server port 6500
             Socket s = new Socket(ip, 6500);
 
             // obtaining input and out streams
-            DataInputStream dis = new DataInputStream(s.getInputStream());
             DataOutputStream dos = new DataOutputStream(s.getOutputStream());
+            Thread mr = new Thread(new MulticastReceiver(s));
+            mr.start();
 
             do {
-                MulticastReceiver mr = new MulticastReceiver();
-                mr.start();
+                dpReceive = new DatagramPacket(receive,0, receive.length);
+
                 if(!logged) {
                     System.out.println("-----------------------------------------------------------------\n" +
                             "             Digite Login para entrar\n" +
@@ -41,7 +45,7 @@ public class Client extends Regulador {
 
                     switch (opcao) {
                         case "Login":
-                            boolean login = login(dis, dos);
+                            boolean login = login(ds, dpReceive ,dos);
                             if (!login) {
                                 System.out.println("Username ou Password errados\n");
                                 break;
@@ -50,52 +54,70 @@ public class Client extends Regulador {
                             break;
 
                         case "Registo":
-                            registo(dis, dos);
+                            registo(ds, dpReceive, dos);
+                            break;
+
+                        default:
+                            System.out.println("Invalid Input");
                             break;
                     }
                 }else {
                     switch (menu()) {
                         case "1":
-                            //TODO
+                            criarLeilao(dos);
+                            break;
                         case "2":
-                            //TODO
+                            dos.writeUTF("Lista");
+                            ds.receive(dpReceive);
+                            String mensagemRecebida = new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength());
+                            System.out.println(mensagemRecebida);
+                            break;
                         case "3":
-                            //TODO
+                            System.out.println(licitar(ds, dpReceive, dos));
+                            break;
+                        case "4":
+                            System.out.println(pedirPlafond(ds, dpReceive, dos));
+                            break;
+
+                        default:
+                            System.out.println("Invalid Input");
+                            break;
+
                     }
                 }
-
+                receive = new byte[256];
 
             } while(true);
 
             // closing resources
             scn.close();
-            dis.close();
+            ds.close();
             dos.close();
         }catch(Exception e){
             e.printStackTrace();
         }
     }
 
-    private static boolean login(DataInputStream dis, DataOutputStream dos) throws IOException{
+    private static boolean login(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException{
         Scanner scn = new Scanner(System.in);
         System.out.println("Digite Username e Password separados por \";\"");
         String userPass = scn.nextLine();
         dos.writeUTF("Login;" + userPass);
-
-        String mensagemRecebida = dis.readUTF();
-        System.out.println("Login com Sucesso\n");
-        return mensagemRecebida.equals("Aceite");
+        ds.receive(dpReceive);
+        String mensagemRecebida = new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength());
+        System.out.println(mensagemRecebida);
+        return mensagemRecebida.equals("Login com Sucesso");
     }
 
-    private static void registo(DataInputStream dis, DataOutputStream dos) throws IOException{
+    private static void registo(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException{
         Scanner scn = new Scanner(System.in);
 
         System.out.println("Digite novo Username, Password e Plafond separados por \";\"");
         String userPassPlaf = scn.nextLine();
 
         dos.writeUTF("Registo;" + userPassPlaf);
-        String mensagemRecebida = dis.readUTF();
-
+        ds.receive(dpReceive);
+        String mensagemRecebida = new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength());
         if(mensagemRecebida.equals("Aceite")){
             System.out.println("Registo criado com sucesso\n");
         }else{
@@ -110,9 +132,35 @@ public class Client extends Regulador {
                             "               1 - Criar Leilão\n" +
                             "               2 - Ver listagem de Leilões\n" +
                             "               3 - Licitar num Leilão\n" +
+                            "               4 - Ver Plafond\n" +
                             "-----------------------------------------------------------------");
 
         return scn.nextLine();
 
     }
+
+    private static void criarLeilao(DataOutputStream dos) throws IOException {
+        Scanner scn = new Scanner(System.in);
+        System.out.println("Digite a Data de Fecho do Leilao no formato \"dd-MM-yyyy HH:mm:ss\" e a Descricao do Leilao separados por \";\"");
+        String dataDescricao = scn.nextLine();
+        dos.writeUTF("Criar;" + dataDescricao);
+    }
+
+    private static String licitar(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException {
+        Scanner scn = new Scanner(System.in);
+
+        System.out.println("Digite o ID do Leilão em que quer licitar e o valor a licitar, separados por \";\"");
+        String idValor = scn.nextLine();
+
+        dos.writeUTF("Licitar;" + idValor);
+        ds.receive(dpReceive);
+        return new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength());
+    }
+
+    private static int pedirPlafond(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException {
+        dos.writeUTF("Plafond");
+        ds.receive(dpReceive);
+        return Integer.parseInt(new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength()));
+    }
 }
+

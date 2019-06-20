@@ -1,16 +1,28 @@
 import java.io.*;
-import java.net.Socket;
+import java.net.*;
 
 class ClientHandler extends Regulador implements Runnable {
     final DataInputStream dis;
-    final DataOutputStream dos;
     final Socket s;
+    DatagramPacket dp = null;
+
+    static Licitador l;
+    MulticastSender enviarTodos = new MulticastSender();
 
     // Constructor
-    public ClientHandler(Socket s, DataInputStream dis, DataOutputStream dos) {
+    ClientHandler(Socket s, DataInputStream dis) {
         this.s = s;
         this.dis = dis;
-        this.dos = dos;
+    }
+
+    public ClientHandler(Socket s) {
+        this.s = s;
+        this.dis = null;
+    }
+
+    public ClientHandler() {
+        this.s = null;
+        this.dis = null;
     }
 
     @Override
@@ -19,11 +31,12 @@ class ClientHandler extends Regulador implements Runnable {
 
         while (true) {
             try {
-                String[] credenciais = dis.readUTF().split(";");
-                received = credenciais[0];
+                String[] input = dis.readUTF().split(";");
+                received = input[0];
+                String msg;
 
-                MulticastSender enviarTodos = new MulticastSender();
-                enviarTodos.multicast("oi");
+                DatagramSocket ds = new DatagramSocket();
+                InetAddress ip = InetAddress.getLocalHost();
 
                 if(received.equals("Exit")) {
                     System.out.println("Client " + this.s + " sends exit...");
@@ -35,24 +48,36 @@ class ClientHandler extends Regulador implements Runnable {
 
                 switch (received) {
                     case "Login" :
-                        dos.writeUTF(login(credenciais));
+                        msg = login(input);
+                        ds.send(new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
                         break;
 
                     case "Registo":
-                        dos.writeUTF(registo(credenciais));
+                        msg = registo(input);
+                        ds.send(new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
                         break;
 
                     case "Criar":
-                    //TODO
+                        criaLeilao(input);
+                        break;
 
                     case "Lista":
-                    //TODO
+                        ListarLeiloes(ds);
+                        break;
 
                     case "Licitar":
-                    //TODO
+                        msg = licitar(input);
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
+                        break;
+
+                    case "Plafond":
+                        msg = plafond();
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
+                        break;
 
                     default:
-                        dos.writeUTF("Invalid input");
+                        msg = "Invalid Input";
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
                         break;
                 }
             } catch (IOException e) {
@@ -62,8 +87,7 @@ class ClientHandler extends Regulador implements Runnable {
 
         try {
             // closing resources
-            this.dis.close();
-            this.dos.close();
+            dis.close();
 
         }catch(IOException e){
             e.printStackTrace();
@@ -72,8 +96,8 @@ class ClientHandler extends Regulador implements Runnable {
 
     private static void escreveNovoLicitador(String linha) throws IOException {
 
-        BufferedWriter writer = new BufferedWriter(new FileWriter("Licitadores.txt"));
-        writer.write(linha);
+        BufferedWriter writer = new BufferedWriter(new FileWriter("Licitadores.txt", true));
+        writer.write(linha+ "\n");
         writer.close();
     }
 
@@ -84,7 +108,9 @@ class ClientHandler extends Regulador implements Runnable {
 
             for (Licitador l : licitadores) {
                 if (username.equals(l.getUsername()) && pass.hashPassword(password, l.getSalt()).get().equals(l.getPassword())) {
-                    return "Aceite";
+                    ClientHandler.l = l;
+                    System.out.println("sucesso");
+                    return "Login com Sucesso";
                 }
             }
 
@@ -112,15 +138,99 @@ class ClientHandler extends Regulador implements Runnable {
         String passHashed = pass.hashPassword(password,salt).get();
 
         escreveNovoLicitador(username + ";" + passHashed + ";" + salt + ";" + plafond);
-        licitadores.add(new Licitador(username, passHashed, salt, plafond));
+        l = new Licitador(username, passHashed, salt, plafond);
+        licitadores.add(l);
         return "Aceite";
     }
 
-    private String criaLeilao(String[] dados) throws IOException{
-        return "";
-        //TODO
+    private void criaLeilao(String[] dados) throws IOException{
+        String data = dados[1];
+        String descricao = dados[2];
+        int id = 1;
+
+        for(Leilao l : leiloes){
+            if(l.getId() > id){
+                id = l.getId() + 1;
+            }
+        }
+        l.adicionaLeilaoProprio(id);
+
+        BufferedWriter writer = new BufferedWriter(new FileWriter("Leiloes.txt", true));
+        Leilao leilao = new Leilao(id,descricao, data, l.getUsername());
+        writer.write( leilao.toStringParaFicheiro() + "\n");
+        writer.close();
+        leiloes.add(leilao);
+        enviarTodos.multicast("Criar;"+ l.getUsername());
     }
 
+    private void atualizarFicheiroLeiloes() throws IOException{
+        BufferedWriter writer = new BufferedWriter(new FileWriter("Leiloes.txt", false));
 
+        for(Leilao l : leiloes){
+            writer.write(l.toStringParaFicheiro());
+        }
+        writer.close();
+    }
+
+    private void atualizarFicheiroLicitadores() throws IOException {
+        BufferedWriter writer = new BufferedWriter(new FileWriter("Licitadores.txt", false));
+        for(Licitador l : licitadores){
+            writer.write(l.toStringParaFicheiro());
+        }
+        writer.close();
+    }
+
+    private void ListarLeiloes(DatagramSocket ds) throws IOException {
+        StringBuilder lista = new StringBuilder();
+
+        for(Leilao l : leiloes){
+            lista.append(l.toString());
+        }
+
+        String msg = ("Plafond disponível: " + l.getPlafond() + "\n" +
+                "---------------------------------------------------------------\n" +
+                lista);
+
+        ds.send(new DatagramPacket(msg.getBytes(),msg.length()));
+    }
+
+    private String licitar(String [] dados) throws IOException {
+        int idLeilao = Integer.parseInt(dados[1]);
+        int valor = Integer.parseInt(dados[2]);
+
+        for(Leilao leilao : leiloes){
+            if(leilao.getId() == idLeilao){
+                if(leilao.getLicitacaoMax() < valor){
+                    if(l.getPlafond() > valor){
+                        leilao.guardarLicitadorAnterior();
+                        leilao.adicionarLicitacao(valor, l.getUsername());
+                        l.adicionaLeilao(idLeilao);
+                        l.retiraPlafond(valor);
+                        for(Licitador licitador: licitadores){
+                            if(licitador.getUsername().equals(leilao.getUltimoUser())){
+                                licitador.devolvePlafond(leilao.getPlafond(leilao.getUltimoUser()));
+                            }
+                        }
+                        enviarTodos.multicast("Licitar;" + leilao.getId() + ";" + l.getUsername());
+                        atualizarFicheiroLeiloes();
+                        atualizarFicheiroLicitadores();
+                        leilao.guardarLicitacoes();
+                        return "A sua licitação foi aceite.";
+                    }else{
+                        return "A sua solicitação não foi aceite,o valor da sua proposta é superior ao seu plafond.";
+                    }
+                }else{
+                   return"A sua licitação não foi aceite, o valor proposto não é superior ao máximo atual.";
+                }
+            }else{
+                return "O leilão com ID " + idLeilao + " não existe ou já não está disponível.";
+            }
+        }
+        return "";
+    }
+
+    private String plafond(){
+        return "O seu plafond​​ atual é de " + l.getPlafond() +" euros.";
+    }
 
 }
