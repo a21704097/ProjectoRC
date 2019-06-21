@@ -41,9 +41,6 @@ public class Leilao {
 
     public boolean verificaData(){
         LocalDateTime dataAtual = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
-        System.out.println(dataAtual.format(formatter));
-
         return !dataDeFecho.isAfter(dataAtual);
     }
 
@@ -52,7 +49,7 @@ public class Leilao {
     }
 
     public String toStringParaFicheiro(){
-        return (id + ";" + descricao + ";" + dataFicheiro + ";" + getLicitacaoMax() + ";" + autor);
+        return (id + ";" + descricao + ";" + dataFicheiro + ";" + getLicitacaoMax() + ";" + autor );
     }
 
     public int getLicitacaoMax(){
@@ -73,9 +70,16 @@ public class Leilao {
     }
 
     public void guardarLicitacoes() throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter("Licitadores.txt", false));
+        BufferedWriter writer = new BufferedWriter(new FileWriter("Licitacoes.txt", false));
+        int j = 0;
         for(int i : licitacoes.keySet()){
-            writer.write(getId() + ";" + i + ";" + licitacoes.get(i));
+            if(j==0) {
+                writer.write(getId() + ";" + i + ";" + licitacoes.get(i));
+            }else{
+                writer.write("\n" + getId() + ";" + i + ";" + licitacoes.get(i));
+                j++;
+            }
+
         }
         writer.close();
     }

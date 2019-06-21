@@ -16,13 +16,11 @@ public class Client {
             Scanner scn = new Scanner(System.in);
             boolean logged = false;
 
-            // getting localhost ip
-            InetAddress ip = InetAddress.getByName("localhost");
             DatagramSocket ds = new DatagramSocket(6000);
             byte[] receive = new byte[1000];
             DatagramPacket dpReceive = null;
 
-            Socket s = new Socket(ip, 6500);
+            Socket s = new Socket(args[0], Integer.parseInt(args[1]));
 
             // obtaining input and out streams
             DataOutputStream dos = new DataOutputStream(s.getOutputStream());

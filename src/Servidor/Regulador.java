@@ -11,10 +11,9 @@ public class Regulador {
      static ArrayList<Leilao> leiloes = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
-        // server is listening on port 6500
-        ServerSocket ss = new ServerSocket(6500);
+        ServerSocket ss = new ServerSocket(Integer.parseInt(args[0]));
         Thread fecharLeiloes = new Thread(new FecharLeiloes());
-        fecharLeiloes.start();
+
 
         try {
             lerFicheiroLicitadores();
@@ -25,9 +24,9 @@ public class Regulador {
             e.printStackTrace();
         }
 
-
         while (true) {
             Socket s = null;
+            fecharLeiloes.start();
             try
             {
                 // socket object to receive incoming client requests
@@ -63,7 +62,6 @@ public class Regulador {
             while (sc.hasNextLine()) {
                 String[] dados = sc.nextLine().split(";");
                 licitadores.add(new Licitador(dados[0], dados[1], dados[2], Integer.parseInt(dados[3])));
-
             }
         }
 
@@ -95,7 +93,6 @@ public class Regulador {
                     if(l.getId() == id){
                         l.adicionarLicitacao(Integer.parseInt(dados[1]), dados[2]);
                     }
-
                 }
             }
         }

@@ -33,8 +33,7 @@ class ClientHandler extends Regulador implements Runnable {
                 String msg;
 
                 DatagramSocket ds = new DatagramSocket();
-                String ip = InetAddress.getLocalHost().getHostAddress();
-                InetAddress address = InetAddress.getByName(ip);
+                InetAddress ip = InetAddress.getByName("localhost");
 
                 if(received.equals("Exit")) {
                     System.out.println("Cliente.Client " + this.s + " sends exit...");
@@ -47,36 +46,36 @@ class ClientHandler extends Regulador implements Runnable {
                 switch (received) {
                     case "Login" :
                         msg = login(input);
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
                         break;
 
                     case "Registo":
                         msg = registo(input);
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
                         break;
 
                     case "Criar":
                         msg = String.valueOf(criaLeilao(input));
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
                         break;
 
                     case "Lista":
-                        ListarLeiloes(ds, address);
+                        ListarLeiloes(ds, ip);
                         break;
 
                     case "Licitar":
                         msg = licitar(input);
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
                         break;
 
                     case "Plafond":
                         msg = plafond();
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
                         break;
 
                     default:
                         msg = "Invalid Input";
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
                         break;
                 }
 
@@ -97,7 +96,11 @@ class ClientHandler extends Regulador implements Runnable {
     private static void escreveNovoLicitador(String linha) throws IOException {
 
         BufferedWriter writer = new BufferedWriter(new FileWriter("Licitadores.txt", true));
-        writer.write(linha+ "\n");
+        if (licitadores.size() == 0) {
+            writer.write(linha);
+        }else{
+            writer.write("\n" + linha);
+        }
         writer.close();
     }
 
@@ -148,14 +151,18 @@ class ClientHandler extends Regulador implements Runnable {
         int id = 1;
 
         for(Leilao l : leiloes){
-            if(l.getId() > id){
+            if(l.getId() >= id){
                 id = l.getId() + 1;
             }
         }
 
         BufferedWriter writer = new BufferedWriter(new FileWriter("Leiloes.txt", true));
         Leilao leilao = new Leilao(id,descricao, data, l.getUsername());
-        writer.write( leilao.toStringParaFicheiro() + "\n");
+        if (id == 1) {
+            writer.write(leilao.toStringParaFicheiro());
+        }else {
+            writer.write("\n" + leilao.toStringParaFicheiro());
+        }
         writer.close();
         leiloes.add(leilao);
         l.adicionaLeilaoProprio(id);
@@ -166,8 +173,13 @@ class ClientHandler extends Regulador implements Runnable {
     private void atualizarFicheiroLeiloes() throws IOException{
         BufferedWriter writer = new BufferedWriter(new FileWriter("Leiloes.txt", false));
 
-        for(Leilao l : leiloes){
-            writer.write(l.toStringParaFicheiro());
+        for(Leilao l : leiloes) {
+            if (l.getId() == 1) {
+                writer.write(l.toStringParaFicheiro());
+            }else {
+                writer.write( "\n" + l.toStringParaFicheiro());
+            }
+
         }
         writer.close();
     }
@@ -175,7 +187,11 @@ class ClientHandler extends Regulador implements Runnable {
     private void atualizarFicheiroLicitadores() throws IOException {
         BufferedWriter writer = new BufferedWriter(new FileWriter("Licitadores.txt", false));
         for(Licitador l : licitadores){
-            writer.write(l.toStringParaFicheiro());
+            if (licitadores.get(0).getUsername().equals(l.getUsername())) {
+                writer.write(l.toStringParaFicheiro());
+            }else {
+                writer.write( "\n" + l.toStringParaFicheiro());
+            }
         }
         writer.close();
     }

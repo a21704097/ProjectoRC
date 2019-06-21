@@ -53,7 +53,11 @@ public class Licitador {
     }
 
     public String toStringParaFicheiro(){
-        return (username + ";" + password + ";" + salt + ";" + plafond);
+        return (username + ";" + password + ";" + salt + ";" + plafond );
+    }
+
+    public String toString(){
+        return (username + ";" + password + ";" + salt + ";" + plafond + "\n");
     }
 
     public ArrayList<Integer> getLeiloes() {

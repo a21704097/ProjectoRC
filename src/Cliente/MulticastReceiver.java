@@ -1,5 +1,4 @@
 package Cliente;
-
 import java.io.*;
 import java.net.*;
 
@@ -20,6 +19,8 @@ public class MulticastReceiver extends Client implements Runnable {
 
             String[] dados = received.split(";");
 
+            System.out.println(dados[0]);
+
             switch (dados[0]){
                 case "Criar":
                     if(username.equals(dados[1])){
@@ -38,6 +39,7 @@ public class MulticastReceiver extends Client implements Runnable {
                     break;
 
                 case "Fechou":
+                    System.out.println("fechou");
                     if(!dados[2].equals("Ninguem")) {
                         if (username.equals(dados[2])) {
                             System.out.println("Parabéns! Foi o vencedor do leilão com o ID " + dados[1] + " no valor de " + dados[3] + " euros.");
