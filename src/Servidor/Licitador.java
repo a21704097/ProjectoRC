@@ -1,3 +1,5 @@
+package Servidor;
+
 import java.util.ArrayList;
 
 public class Licitador {

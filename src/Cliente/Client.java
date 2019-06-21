@@ -1,10 +1,16 @@
+package Cliente;
+
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-// Client class
-public class Client extends Regulador {
+// Cliente.Client class
+public class Client {
+    static String username;
+    static ArrayList<Integer> leiloes = new ArrayList<>();
+    static ArrayList<Integer> leiloesProprios = new ArrayList<>();
+
     public static void main(String[] args) {
         try {
             Scanner scn = new Scanner(System.in);
@@ -13,18 +19,19 @@ public class Client extends Regulador {
             // getting localhost ip
             InetAddress ip = InetAddress.getByName("localhost");
             DatagramSocket ds = new DatagramSocket(6000);
-            byte[] receive = new byte[256];
+            byte[] receive = new byte[1000];
             DatagramPacket dpReceive = null;
 
             Socket s = new Socket(ip, 6500);
 
             // obtaining input and out streams
             DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-            Thread mr = new Thread(new MulticastReceiver(s));
+            Thread mr = new Thread(new MulticastReceiver());
             mr.start();
 
             do {
                 dpReceive = new DatagramPacket(receive,0, receive.length);
+                dpReceive.setLength(1000);
 
                 if(!logged) {
                     System.out.println("-----------------------------------------------------------------\n" +
@@ -64,7 +71,7 @@ public class Client extends Regulador {
                 }else {
                     switch (menu()) {
                         case "1":
-                            criarLeilao(dos);
+                            criarLeilao(ds, dpReceive, dos);
                             break;
                         case "2":
                             dos.writeUTF("Lista");
@@ -79,13 +86,16 @@ public class Client extends Regulador {
                             System.out.println(pedirPlafond(ds, dpReceive, dos));
                             break;
 
+                        case "5":
+                            s.close();
+                            break;
+
                         default:
                             System.out.println("Invalid Input");
                             break;
 
                     }
                 }
-                receive = new byte[256];
 
             } while(true);
 
@@ -103,6 +113,10 @@ public class Client extends Regulador {
         System.out.println("Digite Username e Password separados por \";\"");
         String userPass = scn.nextLine();
         dos.writeUTF("Login;" + userPass);
+
+        String[] dados = userPass.split(";");
+        username = dados[0];
+
         ds.receive(dpReceive);
         String mensagemRecebida = new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength());
         System.out.println(mensagemRecebida);
@@ -139,11 +153,14 @@ public class Client extends Regulador {
 
     }
 
-    private static void criarLeilao(DataOutputStream dos) throws IOException {
+    private static void criarLeilao(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException {
         Scanner scn = new Scanner(System.in);
         System.out.println("Digite a Data de Fecho do Leilao no formato \"dd-MM-yyyy HH:mm:ss\" e a Descricao do Leilao separados por \";\"");
         String dataDescricao = scn.nextLine();
         dos.writeUTF("Criar;" + dataDescricao);
+
+        ds.receive(dpReceive);
+        leiloes.add(Integer.parseInt(new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength())));
     }
 
     private static String licitar(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException {
@@ -152,15 +169,24 @@ public class Client extends Regulador {
         System.out.println("Digite o ID do Leilão em que quer licitar e o valor a licitar, separados por \";\"");
         String idValor = scn.nextLine();
 
+
+
         dos.writeUTF("Licitar;" + idValor);
         ds.receive(dpReceive);
-        return new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength());
+
+        String msg = new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength());
+
+        if(msg.equals("A sua licitação foi aceite.")) {
+            String[] dados = idValor.split(";");
+            leiloesProprios.add(Integer.parseInt(dados[0]));
+        }
+        return msg;
     }
 
-    private static int pedirPlafond(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException {
+    private static String pedirPlafond(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException {
         dos.writeUTF("Plafond");
         ds.receive(dpReceive);
-        return Integer.parseInt(new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength()));
+        return new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength());
     }
 }
 

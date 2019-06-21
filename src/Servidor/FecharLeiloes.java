@@ -1,3 +1,5 @@
+package Servidor;
+
 public class FecharLeiloes extends ClientHandler implements Runnable {
 
     public FecharLeiloes() {

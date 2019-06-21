@@ -1,3 +1,5 @@
+package Servidor;
+
 import java.io.*;
 import java.net.*;
 
@@ -15,11 +17,6 @@ class ClientHandler extends Regulador implements Runnable {
         this.dis = dis;
     }
 
-    public ClientHandler(Socket s) {
-        this.s = s;
-        this.dis = null;
-    }
-
     public ClientHandler() {
         this.s = null;
         this.dis = null;
@@ -31,16 +28,16 @@ class ClientHandler extends Regulador implements Runnable {
 
         while (true) {
             try {
-                assert dis != null;
                 String[] input = dis.readUTF().split(";");
                 received = input[0];
                 String msg;
 
                 DatagramSocket ds = new DatagramSocket();
-                InetAddress ip = InetAddress.getLocalHost();
+                String ip = InetAddress.getLocalHost().getHostAddress();
+                InetAddress address = InetAddress.getByName(ip);
 
                 if(received.equals("Exit")) {
-                    System.out.println("Client " + this.s + " sends exit...");
+                    System.out.println("Cliente.Client " + this.s + " sends exit...");
                     System.out.println("Closing this connection.");
                     this.s.close();
                     System.out.println("Connection closed");
@@ -50,37 +47,39 @@ class ClientHandler extends Regulador implements Runnable {
                 switch (received) {
                     case "Login" :
                         msg = login(input);
-                        ds.send(new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
                         break;
 
                     case "Registo":
                         msg = registo(input);
-                        ds.send(new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
                         break;
 
                     case "Criar":
-                        criaLeilao(input);
+                        msg = String.valueOf(criaLeilao(input));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
                         break;
 
                     case "Lista":
-                        ListarLeiloes(ds);
+                        ListarLeiloes(ds, address);
                         break;
 
                     case "Licitar":
                         msg = licitar(input);
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
                         break;
 
                     case "Plafond":
                         msg = plafond();
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
                         break;
 
                     default:
                         msg = "Invalid Input";
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.length(), ip, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
                         break;
                 }
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -110,7 +109,6 @@ class ClientHandler extends Regulador implements Runnable {
             for (Licitador l : licitadores) {
                 if (username.equals(l.getUsername()) && pass.hashPassword(password, l.getSalt()).get().equals(l.getPassword())) {
                     ClientHandler.l = l;
-                    System.out.println("sucesso");
                     return "Login com Sucesso";
                 }
             }
@@ -144,7 +142,7 @@ class ClientHandler extends Regulador implements Runnable {
         return "Aceite";
     }
 
-    private void criaLeilao(String[] dados) throws IOException{
+    private int criaLeilao(String[] dados) throws IOException{
         String data = dados[1];
         String descricao = dados[2];
         int id = 1;
@@ -162,6 +160,7 @@ class ClientHandler extends Regulador implements Runnable {
         leiloes.add(leilao);
         l.adicionaLeilaoProprio(id);
         enviarTodos.multicast("Criar;"+ l.getUsername() + ";" + id);
+        return id;
     }
 
     private void atualizarFicheiroLeiloes() throws IOException{
@@ -181,7 +180,7 @@ class ClientHandler extends Regulador implements Runnable {
         writer.close();
     }
 
-    private void ListarLeiloes(DatagramSocket ds) throws IOException {
+    private void ListarLeiloes(DatagramSocket ds, InetAddress address) throws IOException {
         StringBuilder lista = new StringBuilder();
 
         for(Leilao l : leiloes){
@@ -192,7 +191,7 @@ class ClientHandler extends Regulador implements Runnable {
                 "---------------------------------------------------------------\n" +
                 lista);
 
-        ds.send(new DatagramPacket(msg.getBytes(),msg.length()));
+        ds.send(new DatagramPacket(msg.getBytes(),msg.getBytes().length, address, 6000));
     }
 
     private String licitar(String [] dados) throws IOException {
