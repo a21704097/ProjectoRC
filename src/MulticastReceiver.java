@@ -4,7 +4,6 @@ import java.net.*;
 public class MulticastReceiver extends ClientHandler implements Runnable {
     protected MulticastSocket socket = null;
     protected byte[] buf = new byte[256];
-    String received;
 
     MulticastReceiver(Socket s) {
         super(s);
@@ -19,16 +18,49 @@ public class MulticastReceiver extends ClientHandler implements Runnable {
         while (true) {
             DatagramPacket packet = new DatagramPacket(buf, buf.length);
             socket.receive(packet);
-            received = new String(buf);
+            String received = new String(buf);
 
             String[] dados = received.split(";");
 
             switch (dados[0]){
                 case "Criar":
+                    for(Licitador l: licitadores){
+                        if(l.getUsername().equals(dados[1])){
+                            System.out.println("O seu leilão foi criado com sucesso com ID " + dados[2] + ".");
+                        }else{
+                            System.out.println("Há um novo leilão disponível,queira consultar os leilões disponíveis.");
+                        }
+                    }
+                    break;
 
                 case "Licitar":
+                    for(Licitador l: licitadores){
+                        if(!(l.getUsername().equals(dados[2]))){
+                            if(l.getLeiloes().contains(Integer.parseInt(dados[1]))){
+                                System.out.println("Foi recebida uma nova licitação no leilão com ID " + dados[1] + ".");
+                            }
+                        }
+                    }
+                    break;
 
                 case "Fechou":
+
+                    for (Licitador l: licitadores){
+                        if(!dados[2].equals("Ninguem")) {
+                            if (l.getUsername().equals(dados[2])) {
+                                System.out.println("Parabéns! Foi o vencedor do leilão com o ID " + dados[1] + " no valor de " + dados[3] + " euros.");
+                            } else if (l.getLeiloes().contains(Integer.parseInt(dados[1]))) {
+                                System.out.println("O leilão com o ID " + dados[1] + " no qual realizou licitações já fechou, infelizmente você não foi o vencedor.");
+                            } else if (l.getLeiloesProprios().contains(Integer.parseInt(dados[1]))) {
+                                System.out.println("O bem presente no leilão com o ID "+ dados[1] +" foi vendido à pessoa "+ dados[2] + " com o valor " + dados[3] + " de euros.");
+                            }
+                        }else{
+                            if(l.getLeiloesProprios().contains(Integer.parseInt(dados[1]))){
+                                System.out.println("Lamentamos, mas o seu leilão com o ID "+ dados[1] +" fechou sem qualquer licitacão.");
+                            }
+                        }
+                    }
+                    break;
 
                 default:
                     break;

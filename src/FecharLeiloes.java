@@ -11,7 +11,7 @@ public class FecharLeiloes extends ClientHandler implements Runnable {
            for (Leilao l : leiloes) {
                if (l.verificaData() && !l.isFechado()) {
                    l.fechar();
-                   enviarTodos.multicast("Fechou;" + l.getId() + l.getVencedor());
+                   enviarTodos.multicast("Fechou;" + l.getId() + ";" +l.getVencedor() +";"+ l.getLicitacaoMax() );
                }
            }
        }

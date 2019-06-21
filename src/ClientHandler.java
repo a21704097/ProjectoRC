@@ -31,6 +31,7 @@ class ClientHandler extends Regulador implements Runnable {
 
         while (true) {
             try {
+                assert dis != null;
                 String[] input = dis.readUTF().split(";");
                 received = input[0];
                 String msg;
@@ -153,14 +154,14 @@ class ClientHandler extends Regulador implements Runnable {
                 id = l.getId() + 1;
             }
         }
-        l.adicionaLeilaoProprio(id);
 
         BufferedWriter writer = new BufferedWriter(new FileWriter("Leiloes.txt", true));
         Leilao leilao = new Leilao(id,descricao, data, l.getUsername());
         writer.write( leilao.toStringParaFicheiro() + "\n");
         writer.close();
         leiloes.add(leilao);
-        enviarTodos.multicast("Criar;"+ l.getUsername());
+        l.adicionaLeilaoProprio(id);
+        enviarTodos.multicast("Criar;"+ l.getUsername() + ";" + id);
     }
 
     private void atualizarFicheiroLeiloes() throws IOException{
