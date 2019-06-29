@@ -39,7 +39,6 @@ public class MulticastReceiver extends Client implements Runnable {
                     break;
 
                 case "Fechou":
-                    System.out.println("fechou");
                     if(!dados[2].equals("Ninguem")) {
                         if (username.equals(dados[2])) {
                             System.out.println("Parabéns! Foi o vencedor do leilão com o ID " + dados[1] + " no valor de " + dados[3] + " euros.");

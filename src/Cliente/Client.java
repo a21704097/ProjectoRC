@@ -16,14 +16,13 @@ public class Client {
             Scanner scn = new Scanner(System.in);
             boolean logged = false;
 
+            Socket s = new Socket(args[0], Integer.parseInt(args[1]));
+            DataOutputStream dos = new DataOutputStream(s.getOutputStream());
             DatagramSocket ds = new DatagramSocket(6000);
             byte[] receive = new byte[1000];
             DatagramPacket dpReceive = null;
 
-            Socket s = new Socket(args[0], Integer.parseInt(args[1]));
 
-            // obtaining input and out streams
-            DataOutputStream dos = new DataOutputStream(s.getOutputStream());
             Thread mr = new Thread(new MulticastReceiver());
             mr.start();
 
@@ -33,10 +32,10 @@ public class Client {
 
                 if(!logged) {
                     System.out.println("-----------------------------------------------------------------\n" +
-                            "             Digite Login para entrar\n" +
-                            "             Digite Registo para criar ficha de Licitador\n" +
-                            "             Digite Exit para terminar conexão\n" +
-                            "-----------------------------------------------------------------");
+                                       "             Digite Login para entrar\n" +
+                                       "             Digite Registo para criar ficha de Licitador\n" +
+                                       "             Digite Exit para terminar conexão\n" +
+                                       "-----------------------------------------------------------------");
 
                     String opcao = scn.nextLine();
 
@@ -145,6 +144,7 @@ public class Client {
                             "               2 - Ver listagem de Leilões\n" +
                             "               3 - Licitar num Leilão\n" +
                             "               4 - Ver Plafond\n" +
+                            "               5 - Sair\n" +
                             "-----------------------------------------------------------------");
 
         return scn.nextLine();

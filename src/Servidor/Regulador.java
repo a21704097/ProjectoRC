@@ -14,6 +14,7 @@ public class Regulador {
         ServerSocket ss = new ServerSocket(Integer.parseInt(args[0]));
         Thread fecharLeiloes = new Thread(new FecharLeiloes());
 
+        fecharLeiloes.start();
 
         try {
             lerFicheiroLicitadores();
@@ -26,7 +27,7 @@ public class Regulador {
 
         while (true) {
             Socket s = null;
-            fecharLeiloes.start();
+
             try
             {
                 // socket object to receive incoming client requests
