@@ -16,7 +16,8 @@ public class Client {
             Scanner scn = new Scanner(System.in);
             boolean logged = false;
 
-            DatagramSocket ds = new DatagramSocket(6000);
+            int port = Integer.parseInt(args[2]);
+            DatagramSocket ds = new DatagramSocket(port);
             byte[] receive = new byte[1000];
             DatagramPacket dpReceive = null;
 
@@ -50,7 +51,7 @@ public class Client {
 
                     switch (opcao) {
                         case "Login":
-                            boolean login = login(ds, dpReceive ,dos);
+                            boolean login = login(ds, dpReceive ,dos, port);
                             if (!login) {
                                 System.out.println("Username ou Password errados\n");
                                 break;
@@ -59,7 +60,7 @@ public class Client {
                             break;
 
                         case "Registo":
-                            registo(ds, dpReceive, dos);
+                            registo(ds, dpReceive, dos, port);
                             break;
 
                         default:
@@ -106,11 +107,11 @@ public class Client {
         }
     }
 
-    private static boolean login(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException{
+    private static boolean login(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos, int port) throws IOException{
         Scanner scn = new Scanner(System.in);
         System.out.println("Digite Username e Password separados por \";\"");
         String userPass = scn.nextLine();
-        dos.writeUTF("Login;" + userPass);
+        dos.writeUTF("Login;" + userPass + ";" + port);
 
         String[] dados = userPass.split(";");
         username = dados[0];
@@ -121,13 +122,13 @@ public class Client {
         return mensagemRecebida.equals("Login com Sucesso");
     }
 
-    private static void registo(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos) throws IOException{
+    private static void registo(DatagramSocket ds, DatagramPacket dpReceive, DataOutputStream dos, int port) throws IOException{
         Scanner scn = new Scanner(System.in);
 
         System.out.println("Digite novo Username, Password e Plafond separados por \";\"");
         String userPassPlaf = scn.nextLine();
 
-        dos.writeUTF("Registo;" + userPassPlaf);
+        dos.writeUTF("Registo;" + userPassPlaf + ";" + port);
         ds.receive(dpReceive);
         String mensagemRecebida = new String(dpReceive.getData(),dpReceive.getOffset(), dpReceive.getLength());
         if(mensagemRecebida.equals("Aceite")){

@@ -26,7 +26,7 @@ public class Regulador {
 
         while (true) {
             Socket s = null;
-            fecharLeiloes.start();
+            //fecharLeiloes.start();
             try
             {
                 // socket object to receive incoming client requests

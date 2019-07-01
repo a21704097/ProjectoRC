@@ -7,6 +7,7 @@ class ClientHandler extends Regulador implements Runnable {
     final DataInputStream dis;
     final Socket s;
     DatagramPacket dp = null;
+    int portUDP = 0;
 
     static Licitador l;
     MulticastSender enviarTodos = new MulticastSender();
@@ -32,8 +33,9 @@ class ClientHandler extends Regulador implements Runnable {
                 received = input[0];
                 String msg;
 
+
                 DatagramSocket ds = new DatagramSocket();
-                InetAddress ip = InetAddress.getByName("localhost");
+                InetAddress ip = s.getInetAddress();
 
                 if(received.equals("Exit")) {
                     System.out.println("Cliente.Client " + this.s + " sends exit...");
@@ -46,17 +48,23 @@ class ClientHandler extends Regulador implements Runnable {
                 switch (received) {
                     case "Login" :
                         msg = login(input);
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
+                        if(portUDP == 0){
+                            portUDP = Integer.parseInt(input[3]);
+                        }
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, portUDP ));
                         break;
 
                     case "Registo":
                         msg = registo(input);
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
+                        if(portUDP == 0){
+                           portUDP = Integer.parseInt(input[4]);
+                        }
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, portUDP));
                         break;
 
                     case "Criar":
                         msg = String.valueOf(criaLeilao(input));
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, portUDP));
                         break;
 
                     case "Lista":
@@ -65,17 +73,17 @@ class ClientHandler extends Regulador implements Runnable {
 
                     case "Licitar":
                         msg = licitar(input);
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, portUDP));
                         break;
 
                     case "Plafond":
                         msg = plafond();
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, portUDP));
                         break;
 
                     default:
                         msg = "Invalid Input";
-                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, 6000));
+                        ds.send(dp = new DatagramPacket(msg.getBytes(),msg.getBytes().length, ip, portUDP));
                         break;
                 }
 
@@ -120,7 +128,7 @@ class ClientHandler extends Regulador implements Runnable {
     }
 
     private String registo(String[] credenciais) throws IOException{
-        if(credenciais.length != 4){
+        if(credenciais.length != 5){
             return "Numero de Parametros errado\n";
         }
         String username = credenciais[1];
